@@ -44,7 +44,7 @@ Once it's loaded, predictions are instant.
 
 **For comparisons:** Compare similar types of content. Product photos work well with product descriptions, but mixing very different domains might give unexpected results.
 
-## When to use CLIP
+## When to use CLIP ✅
 
 CLIP works well for:
 
@@ -81,7 +81,7 @@ Text can be any length, but shorter, descriptive phrases usually work better tha
 
 Images can be any common format (JPEG, PNG, etc.). Larger images take longer to process, so resize them if speed matters.
 
-## Licensing
+## Licensing 📄
 
 OpenAI released CLIP under the MIT License, which means you can use it for commercial projects. The model is free to use and modify.
 
