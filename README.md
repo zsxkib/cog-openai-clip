@@ -1,147 +1,90 @@
-# Cog Template Repository
+---
+name: clip
+description: Turn any text or image into a 768-dimensional vector that captures its meaning
+github_url: https://github.com/openai/CLIP
+paper_url: https://arxiv.org/abs/2103.00020
+license_url: https://github.com/openai/CLIP/blob/main/LICENSE
+---
 
-This is a template repository for creating [Cog](https://github.com/replicate/cog) models that efficiently handle model weights with proper caching. It includes tools to upload model weights to Google Cloud Storage and generate download code for your `predict.py` file.
+[![Replicate](https://replicate.com/openai/clip/badge)](https://replicate.com/openai/clip)
 
-[![Replicate](https://replicate.com/zsxkib/model-name/badge)](https://replicate.com/zsxkib/model-name)
+# CLIP
 
-## Getting Started
+OpenAI's CLIP understands both text and images. Give it either one, and you get back a 768-dimensional vector that captures what it means.
 
-To use this template for your own model:
+## What you can do with CLIP
 
-1. Clone this repository
-2. Modify `predict.py` with your model's implementation
-3. Update `cog.yaml` with your model's dependencies
-4. Use `cache_manager.py` to upload and manage model weights
+CLIP turns text and images into vectors. Since the vectors are in the same space, you can compare them to find similarities across different types of content.
 
-## Repository Structure
+**🔍 Search by meaning, not keywords.** Upload a photo of a red sports car, and CLIP can find text descriptions that match it, like "fast red vehicle" or "crimson automobile."
 
-- `predict.py`: The main model implementation file 
-- `cache_manager.py`: Script for uploading model weights to GCS and generating download code
-- `cog.yaml`: Cog configuration file that defines your model's environment
+**🛍️ Build recommendation systems.** Get vectors for your product images and customer searches, then find the closest matches.
 
-## Managing Model Weights with cache_manager.py
+**📁 Organize content automatically.** Group similar images together or tag them based on text descriptions.
 
-A key feature of this template is the `cache_manager.py` script, which helps you:
+**🔎 Create multimodal search engines.** Let people search your image library using natural language.
 
-1. Upload model weights to Google Cloud Storage (GCS)
-2. Generate code for downloading those weights in your `predict.py`
-3. Handle both individual files and directories efficiently
+## How CLIP works
 
-### Prerequisites for Using cache_manager.py
+CLIP learned to understand both text and images by looking at millions of image-caption pairs. It maps both types of content into the same 768-dimensional space, where similar concepts end up close together.
 
-- Google Cloud SDK installed and configured (`gcloud` command)
-- Permission to upload to the specified GCS bucket (default: `gs://replicate-weights/`)
-- `tar` command available in your PATH
+When you give CLIP text like "a dog playing in a park," it returns a vector. When you give it an image of a dog playing in a park, you get a similar vector. You can then compare these vectors to measure how similar the content is.
 
-### Basic Usage
+## Why this version loads fast ⚡
 
-```bash
-python cache_manager.py --model-name your-model-name --local-dirs model_cache
-```
+Most CLIP implementations take 2+ minutes to start because they download a 3.4GB model every time. We store the model weights in a Google Cloud bucket and download them in parallel, so the model loads in about 12 seconds.
 
-This will:
-1. Find files and directories in the `model_cache` directory
-2. Create tar archives of each directory
-3. Upload both individual files and tar archives to GCS
-4. Generate code snippets for downloading the weights in your `predict.py`
+Once it's loaded, predictions are instant.
 
-### Advanced Usage
+## What makes good results
 
-```bash
-python cache_manager.py \
-    --model-name your-model-name \
-    --local-dirs model_cache weights \
-    --gcs-base-path gs://replicate-weights/ \
-    --cdn-base-url https://weights.replicate.delivery/default/ \
-    --keep-tars
-```
+**For images:** Clear, well-lit photos work best. The model was trained mostly on photographs, so drawings or very stylized images might not work as well.
 
-#### Parameters
+**For text:** Descriptive phrases work better than single words. Instead of "car," try "red sports car driving down a highway."
 
-- `--model-name`: Required. The name of your model (used in paths)
-- `--local-dirs`: Required. One or more local directories to process
-- `--gcs-base-path`: Optional. Base Google Cloud Storage path
-- `--cdn-base-url`: Optional. Base CDN URL
-- `--keep-tars`: Optional. Keep the generated .tar files locally after upload
+**For comparisons:** Compare similar types of content. Product photos work well with product descriptions, but mixing very different domains might give unexpected results.
 
-## Workflow Example
+## When to use CLIP
 
-1. **Develop your model locally**:
-   ```bash
-   # Run your model once to download weights to model_cache
-   cog predict -i prompt="test"
-   ```
+CLIP works well for:
 
-2. **Upload model weights**:
-   ```bash
-   python cache_manager.py --model-name your-model-name --local-dirs model_cache
-   ```
+- **E-commerce search** where people describe what they want instead of using exact product names
+- **Content moderation** to find images or text that match certain concepts
+- **Media organization** to automatically tag and group visual content
+- **Recommendation systems** that need to understand both what people say and what they see
 
-3. **Copy the generated code snippet** into your `predict.py`
+CLIP doesn't work as well for:
 
-4. **Test that the model can download weights**:
-   ```bash
-   rm -rf model_cache
-   cog predict -i prompt="test"
-   ```
+- **Text that isn't in English** (it was trained mostly on English)
+- **Very abstract or artistic images** that look very different from photographs  
+- **Precise object detection** (it understands concepts better than exact locations)
 
-## Example Implementation
+## Research background
 
-The template comes with a sample Stable Diffusion implementation in `predict.py` that demonstrates:
+CLIP comes from OpenAI's research on contrastive learning. Instead of training separate models for text and images, they trained one model to understand both by showing it millions of images paired with their descriptions.
 
-- Setting up the model cache directory
-- Downloading weights from GCS with progress reporting
-- Setting environment variables for model caching
-- Random seed generation for reproducibility
-- Output format and quality options
+The key insight was that you don't need carefully labeled datasets. You can just use images and captions that already exist on the internet, then train the model to match them up.
 
-## Best Practices
+Read the original research: [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020)
 
-- **Environment Variables**: Set cache-related environment variables early
-  ```python
-  os.environ["HF_HOME"] = MODEL_CACHE
-  os.environ["TORCH_HOME"] = MODEL_CACHE
-  # etc.
-  ```
+## What you get back
 
-- **Seed Management**: Provide a seed parameter and implement random seed generation
-  ```python
-  if seed is None:
-      seed = int.from_bytes(os.urandom(2), "big")
-  print(f"Using seed: {seed}")
-  ```
+CLIP returns a single array of 768 numbers (called a vector or embedding) that represents the meaning of your input. These numbers don't mean anything on their own, but you can compare vectors using cosine similarity to measure how similar two pieces of content are.
 
-- **Output Formats**: Support multiple output formats (webp, jpg, png) with quality controls
-  ```python
-  output_format: str = Input(
-      description="Format of the output image",
-      choices=["webp", "jpg", "png"],
-      default="webp"
-  )
-  output_quality: int = Input(
-      description="The image compression quality...",
-      ge=1, le=100, default=80
-  )
-  ```
+You can also store these vectors in a vector database to build fast search systems.
 
-## Deploying to Replicate
+## Input requirements
 
-After setting up your model, you can push it to [Replicate](https://replicate.com):
+Send either text or an image, not both. If you send both, CLIP will only process the image.
 
-1. Create a new model on Replicate
-2. Push your model:
-   ```bash
-   cog push r8.im/username/model-name
-   ```
+Text can be any length, but shorter, descriptive phrases usually work better than very long passages.
 
-## License
+Images can be any common format (JPEG, PNG, etc.). Larger images take longer to process, so resize them if speed matters.
 
-MIT
+## Licensing
+
+OpenAI released CLIP under the MIT License, which means you can use it for commercial projects. The model is free to use and modify.
 
 ---
 
----
-
-⭐ Star this on [GitHub](https://github.com/zsxkib/model-name)!
-
-👋 Follow `zsxkib` on [Twitter/X](https://twitter.com/zsakib_)
+Built by OpenAI • [Paper](https://arxiv.org/abs/2103.00020) • [GitHub](https://github.com/openai/CLIP)

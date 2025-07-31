@@ -1,26 +1,33 @@
 # Prediction interface for Cog ⚙️
-# https://cog.run/python
+# https://github.com/replicate/cog/blob/main/docs/python.md
 
 import os
 
 MODEL_CACHE = "model_cache"
-BASE_URL = "https://weights.replicate.delivery/default/test-sd-15/model_cache/"
+
+# Set environment variables for model caching BEFORE any imports
 os.environ["HF_HOME"] = MODEL_CACHE
 os.environ["TORCH_HOME"] = MODEL_CACHE
 os.environ["HF_DATASETS_CACHE"] = MODEL_CACHE
 os.environ["TRANSFORMERS_CACHE"] = MODEL_CACHE
 os.environ["HUGGINGFACE_HUB_CACHE"] = MODEL_CACHE
 
-import mimetypes
-
-mimetypes.add_type("image/webp", ".webp")
-
-import time
-import torch
 import subprocess
-from typing import Optional
-from cog import BasePredictor, Input, Path
-from diffusers import StableDiffusionPipeline
+import time
+from typing import List, Optional
+
+from cog import BaseModel, BasePredictor, File, Input
+from PIL import Image
+from transformers import AutoProcessor, AutoTokenizer, CLIPModel
+
+import torch
+
+# os.environ["TRANSFORMERS_VERBOSITY"] = "info"
+
+MODEL_NAME = "openai/clip-vit-large-patch14"
+BASE_URL = "https://weights.replicate.delivery/default/clip-embeddings/model_cache/"
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def download_weights(url: str, dest: str) -> None:
@@ -41,96 +48,58 @@ def download_weights(url: str, dest: str) -> None:
     print("[+] Download completed in: ", time.time() - start, "seconds")
 
 
+class Output(BaseModel):
+    embedding: List[float]
+
+
 class Predictor(BasePredictor):
     def setup(self) -> None:
         """Load the model into memory to make running multiple predictions efficient"""
         # Create model cache directory if it doesn't exist
-        if not os.path.exists(MODEL_CACHE):
-            os.makedirs(MODEL_CACHE)
+        os.makedirs(MODEL_CACHE, exist_ok=True)
+            
+        # Download model weights if they don't exist
+        model_file = "models--openai--clip-vit-large-patch14.tar"
+        url = f"{BASE_URL}{model_file}"
+        dest_path = os.path.join(MODEL_CACHE, model_file)
+        extracted_path = dest_path.replace(".tar", "")
+        
+        if not os.path.exists(extracted_path):
+            print(f"[~] Downloading {model_file}...")
+            download_weights(url, dest_path)
+        else:
+            print(f"[✓] {model_file} already exists, skipping download")
+                
+        # Load the model using the cache
+        self.model: CLIPModel = CLIPModel.from_pretrained(MODEL_NAME, cache_dir=MODEL_CACHE)
+        self.model = self.model.to(device)
+        self.model.eval()  # Set to evaluation mode
 
-        model_files = [
-            "models--sd-legacy--stable-diffusion-v1-5.tar",
-        ]
-
-        for model_file in model_files:
-            url = BASE_URL + model_file
-            filename = url.split("/")[-1]
-            dest_path = os.path.join(MODEL_CACHE, filename)
-            if not os.path.exists(dest_path.replace(".tar", "")):
-                download_weights(url, dest_path)
-
-        # Load the model
-        model_id = "sd-legacy/stable-diffusion-v1-5"
-        self.pipe = StableDiffusionPipeline.from_pretrained(
-            model_id, torch_dtype=torch.float16, cache_dir=MODEL_CACHE
-        )
-        self.pipe = self.pipe.to("cuda")
+        self.processor = AutoProcessor.from_pretrained(MODEL_NAME, cache_dir=MODEL_CACHE)
+        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=MODEL_CACHE)
 
     def predict(
         self,
-        prompt: str = Input(description="Text prompt for image generation"),
-        num_inference_steps: int = Input(
-            description="Number of denoising steps", ge=1, le=100, default=50
-        ),
-        guidance_scale: float = Input(
-            description="Guidance scale for text conditioning",
-            ge=1.0,
-            le=20.0,
-            default=7.5,
-        ),
-        seed: Optional[int] = Input(
-            description="Random seed for reproducible results. Leave blank for a random seed.",
-            default=None,
-        ),
-        output_format: str = Input(
-            description="Format of the output image",
-            choices=["webp", "jpg", "png"],
-            default="webp",
-        ),
-        output_quality: int = Input(
-            description="The image compression quality (for lossy formats like JPEG and WebP). 100 = best quality, 0 = lowest quality.",
-            ge=1,
-            le=100,
-            default=80,
-        ),
-    ) -> Path:
-        """Generate an image from a text prompt"""
-        # Set up generator with seed if provided
-        if seed is None:
-            seed = int.from_bytes(os.urandom(2), "big")
-        print(f"Using seed: {seed}")
+        text: Optional[str] = Input(description="Input text to encode", default=None),
+        image: Optional[File] = Input(description="Input image to encode", default=None),
+    ) -> Output:
+        """Run a single prediction on the model
+        
+        Provide either text or image input (not both). If both are provided,
+        only the image will be processed.
+        """
+        
+        embedding = []
+        
+        if image is not None:
+            pil_image = Image.open(image)
+            inputs = self.processor(images=pil_image, return_tensors="pt").to(device)
+            image_features = self.model.get_image_features(**inputs)
+            embedding = image_features.tolist()[0]
+                
+        elif text is not None:
+            inputs = self.tokenizer([text], padding=True, return_tensors="pt").to(device)
+            text_features = self.model.get_text_features(**inputs)
+            embedding = text_features.tolist()[0]
 
-        # Generate image
-        image = self.pipe(
-            prompt=prompt,
-            num_inference_steps=num_inference_steps,
-            guidance_scale=guidance_scale,
-            seed=seed,
-        ).images[0]
-
-        # Ensure image is in RGB mode
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-
-        # Prepare saving arguments
-        extension = output_format.lower()
-        save_params = {}
-
-        # Add quality parameter for lossy formats
-        if output_format != "png":
-            print(f"[~] Output quality: {output_quality}")
-            save_params["quality"] = output_quality
-            save_params["optimize"] = True
-
-        # Handle jpg/jpeg naming
-        if extension == "jpg":
-            extension = "jpeg"
-
-        # Create output path
-        output_path = Path(f"output.{extension}")
-
-        # Save the image with appropriate parameters
-        image.save(str(output_path), **save_params)
-        print(f"[+] Saved output as {output_format.upper()}")
-
-        return output_path
+        return Output(embedding=embedding)
