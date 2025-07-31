@@ -29,7 +29,7 @@ jobs:
           
   cog-safe-push:
     needs: prepare-matrix
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     strategy:
       matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
       fail-fast: false  # Continue with other models if one fails
