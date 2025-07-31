@@ -21,6 +21,8 @@ from cog import BaseModel, BasePredictor, File, Input
 from PIL import Image
 from transformers import AutoProcessor, AutoTokenizer, CLIPModel
 
+from helpers import record_billing_metric
+
 MODEL_NAME = "openai/clip-vit-large-patch14"
 BASE_URL = "https://weights.replicate.delivery/default/clip-embeddings/model_cache/"
 
@@ -93,7 +95,10 @@ class Predictor(BasePredictor):
         Provide either text or image input (not both). If both are provided,
         only the image will be processed.
         """
-
+        
+        # Start timing for billing
+        start_time = time.time()
+        
         embedding = []
 
         if image is not None:
@@ -108,5 +113,9 @@ class Predictor(BasePredictor):
             )
             text_features = self.model.get_text_features(**inputs)
             embedding = text_features.tolist()[0]
+
+        # Calculate elapsed time and record time-based billing metric
+        elapsed_time = time.time() - start_time
+        record_billing_metric("unspecified_billing_metric", elapsed_time)
 
         return Output(embedding=embedding)
