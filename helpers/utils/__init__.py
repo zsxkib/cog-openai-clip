@@ -1,4 +1,5 @@
-from .random import seed_or_random_seed
+from .gcp import ReplicateGCPBucket
+from .random_utils import seed_or_random_seed
 from .retry import (
     retry_with_capped_exponential_backoff,
     retry_with_exponential_backoff,
@@ -13,4 +14,5 @@ __all__ = [
     "retry_with_exponential_backoff",
     "retry_with_uniform_backoff",
     "retry_with_capped_exponential_backoff",
+    "ReplicateGCPBucket",
 ]

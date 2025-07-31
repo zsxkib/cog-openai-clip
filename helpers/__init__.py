@@ -4,6 +4,7 @@ from .exceptions import check_for_prediction_error, exception_without_traceback
 from .images import async_validate_image_aspect_ratio, optimized_base64, optimized_file
 from .moderation import ContentModerationError, OpenAIModerationClient
 from .utils import seed_or_random_seed, validate_url, validate_uuid
+from .utils.gcp import ReplicateGCPBucket
 from .utils.retry import (
     retry_with_capped_exponential_backoff,
     retry_with_exponential_backoff,
@@ -36,6 +37,8 @@ __all__ = [
     "validate_url",
     "validate_uuid",
     "seed_or_random_seed",
+    # gcp
+    "ReplicateGCPBucket",
     # retry
     "retry_with_capped_exponential_backoff",
     "retry_with_exponential_backoff",

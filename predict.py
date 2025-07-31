@@ -116,13 +116,6 @@ class Predictor(BasePredictor):
 
         # Calculate elapsed time and record time-based billing metric
         elapsed_time = time.time() - start_time
-        print(f"[DEBUG] Recording billing metric: elapsed_time={elapsed_time} (type: {type(elapsed_time)})")
-        try:
-            record_billing_metric("unspecified_billing_metric", elapsed_time)
-            print(f"[DEBUG] Successfully recorded billing metric")
-        except Exception as e:
-            print(f"[ERROR] Failed to record billing metric: {e}")
-            # Continue execution to avoid breaking the prediction
-            pass
+        record_billing_metric("unspecified_billing_metric", elapsed_time)
 
         return Output(embedding=embedding)

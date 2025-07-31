@@ -6,7 +6,6 @@ warnings.filterwarnings("ignore", category=ExperimentalFeatureWarning)
 
 # https://github.com/replicate/web/blob/main/replicate_web/metronome.py#L48-L65
 # https://github.com/replicate/director/blob/fc47af0457a1eead08a2f6574ee06eb75c7f6c43/cog/types.go#L64
-# Note: Only metrics from the web BillingMetric enum are actually supported by the billing system
 INTEGER_METRICS = {
     "audio_output_count",
     "character_input_count",
@@ -44,13 +43,11 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
     if metric_name not in ALL_METRICS:
         raise ValueError(f"Invalid metric name: {metric_name}")
 
-    # Type validation and conversion
     if metric_name in INTEGER_METRICS:
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int):
             raise ValueError(
-                f"Metric {metric_name} requires a numeric value, got {type(value)}"
+                f"Metric {metric_name} requires an integer value, got {type(value)}"
             )
-        value = int(value)
         if value < 0:
             raise ValueError(f"Metric value must be non-negative, got {value}")
     elif metric_name in FLOAT_METRICS:
@@ -58,7 +55,6 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
             raise ValueError(
                 f"Metric {metric_name} requires a numeric value, got {type(value)}"
             )
-        value = float(value)
         if value < 0:
             raise ValueError(f"Metric value must be non-negative, got {value}")
     elif metric_name in STRING_METRICS:
@@ -72,8 +68,4 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
                 f"Metric {metric_name} requires a boolean value, got {type(value)}"
             )
 
-    try:
-        current_scope().record_metric(metric_name, value)
-    except Exception as e:
-        print(f"[ERROR] Failed to record billing metric '{metric_name}' with value '{value}' (type: {type(value)}): {e}")
-        raise
+    current_scope().record_metric(metric_name, value)

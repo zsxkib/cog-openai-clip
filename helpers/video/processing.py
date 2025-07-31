@@ -165,3 +165,53 @@ async def get_frame(video_path: Path, frame: str | int = "first") -> Path:
         raise ValueError(f"Failed to extract frame: {stderr.decode()}")
 
     return Path(temp_file_path)
+
+
+async def get_evenly_spaced_frames(video_path: Path, num_frames: int) -> list[Path]:
+    """
+    Extracts num_frames frames evenly spaced across the video.
+    The 0th frame is the first, and the (num_frames-1)th is the last.
+    Returns a list of Paths to the extracted frames.
+    """
+    if num_frames < 2:
+        raise ValueError("num_frames must be at least 2 to get first and last frame.")
+
+    # Get total frame count using ffprobe
+    probe_cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-count_frames",
+        "-show_entries",
+        "stream=nb_read_frames",
+        "-of",
+        "default=nokey=1:noprint_wrappers=1",
+        str(video_path),
+    ]
+    probe_proc = await asyncio.create_subprocess_exec(
+        *probe_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    probe_out, probe_err = await probe_proc.communicate()
+    if probe_proc.returncode != 0:
+        raise ValueError(f"Failed to get frame count: {probe_err.decode()}")
+    try:
+        total_frames = int(probe_out.decode().strip())
+    except Exception as e:
+        raise ValueError(f"Failed to parse frame count: {e}")
+    if total_frames < num_frames:
+        raise ValueError(
+            f"Video has only {total_frames} frames, but {num_frames} requested."
+        )
+
+    # Compute frame indices
+    indices = [
+        round(i * (total_frames - 1) / (num_frames - 1)) for i in range(num_frames)
+    ]
+    # Extract frames
+    frames = []
+    for idx in indices:
+        frame = await get_frame(video_path, frame=idx)
+        frames.append(frame)
+    return frames
