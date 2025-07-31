@@ -1,11 +1,3 @@
----
-name: clip
-description: Turn any text or image into a 768-dimensional vector that captures its meaning
-github_url: https://github.com/openai/CLIP
-paper_url: https://arxiv.org/abs/2103.00020
-license_url: https://github.com/openai/CLIP/blob/main/LICENSE
----
-
 # CLIP
 
 [![Replicate](https://replicate.com/openai/clip/badge)](https://replicate.com/openai/clip)
