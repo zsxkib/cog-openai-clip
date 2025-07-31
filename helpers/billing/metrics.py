@@ -44,11 +44,13 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
     if metric_name not in ALL_METRICS:
         raise ValueError(f"Invalid metric name: {metric_name}")
 
+    # Type validation and conversion
     if metric_name in INTEGER_METRICS:
-        if not isinstance(value, int):
+        if not isinstance(value, (int, float)):
             raise ValueError(
-                f"Metric {metric_name} requires an integer value, got {type(value)}"
+                f"Metric {metric_name} requires a numeric value, got {type(value)}"
             )
+        value = int(value)
         if value < 0:
             raise ValueError(f"Metric value must be non-negative, got {value}")
     elif metric_name in FLOAT_METRICS:
@@ -56,6 +58,7 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
             raise ValueError(
                 f"Metric {metric_name} requires a numeric value, got {type(value)}"
             )
+        value = float(value)
         if value < 0:
             raise ValueError(f"Metric value must be non-negative, got {value}")
     elif metric_name in STRING_METRICS:
@@ -69,4 +72,8 @@ def record_billing_metric(metric_name: str, value: float | int | str | bool) -> 
                 f"Metric {metric_name} requires a boolean value, got {type(value)}"
             )
 
-    current_scope().record_metric(metric_name, value)
+    try:
+        current_scope().record_metric(metric_name, value)
+    except Exception as e:
+        print(f"[ERROR] Failed to record billing metric '{metric_name}' with value '{value}' (type: {type(value)}): {e}")
+        raise
