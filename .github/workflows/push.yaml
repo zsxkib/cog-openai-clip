@@ -1,0 +1,80 @@
+name: Push Models
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Comma-separated list of models to push (clip) or "all"'
+        type: string
+        default: 'all'
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+        
+      - id: set-matrix
+        run: |
+          if [ "${{ inputs.models }}" = "all" ]; then
+            echo "matrix={\"model\":[\"clip\"]}" >> $GITHUB_OUTPUT
+          else
+            # Convert comma-separated string to JSON array
+            MODELS=$(echo "${{ inputs.models }}" | jq -R -s -c 'split(",")')
+            echo "matrix={\"model\":$MODELS}" >> $GITHUB_OUTPUT
+          fi
+          
+  cog-safe-push:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest-4-cores
+    strategy:
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
+      fail-fast: false  # Continue with other models if one fails
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Cog
+      run: |
+        sudo curl -o /usr/local/bin/cog -L "https://github.com/replicate/cog/releases/latest/download/cog_$(uname -s)_$(uname -m)"
+        sudo chmod +x /usr/local/bin/cog
+
+    - name: cog login
+      run: |
+        echo ${{ secrets.COG_TOKEN }} | cog login --token-stdin
+
+    - name: Install cog-safe-push
+      run: |
+        pip install git+https://github.com/replicate/cog-safe-push.git
+
+    - name: Push selected models
+      env:
+        REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+      run: |
+        echo "==="
+        echo "==="
+        echo "=== Pushing ${{ matrix.model }}"
+        echo "==="
+        echo "==="
+        
+        # CLIP model doesn't need external API keys
+        echo "Skipping API key write for ${{ matrix.model }} (CLIP uses local inference)"
+        
+        ./script/select-model ${{ matrix.model }}
+        cog-safe-push --config cog-safe-push-configs/${{ matrix.model }}.yaml -vv
+
+        echo "==="
+        echo "==="
+        echo "=== Pushing underlying official model ${{ matrix.model }}"
+        echo "==="
+        echo "==="
+        ./script/delete-api-key
+        cog-safe-push --push-official-model --config cog-safe-push-configs/${{ matrix.model }}.yaml -vv

@@ -6,9 +6,9 @@ paper_url: https://arxiv.org/abs/2103.00020
 license_url: https://github.com/openai/CLIP/blob/main/LICENSE
 ---
 
-[![Replicate](https://replicate.com/openai/clip/badge)](https://replicate.com/openai/clip)
-
 # CLIP
+
+[![Replicate](https://replicate.com/openai/clip/badge)](https://replicate.com/openai/clip)
 
 OpenAI's CLIP understands both text and images. Give it either one, and you get back a 768-dimensional vector that captures what it means.
 
@@ -73,6 +73,17 @@ CLIP returns a single array of 768 numbers (called a vector or embedding) that r
 
 You can also store these vectors in a vector database to build fast search systems.
 
+## Run it yourself
+
+You can also run CLIP locally. You'll need Docker and [Cog](https://cog.run) installed.
+
+```bash
+git clone https://github.com/zsxkib/cog-openai-clip
+cd cog-openai-clip
+cog predict -i text="a red sports car"
+cog predict -i image=@/path/to/your/image.jpg
+```
+
 ## Input requirements
 
 Send either text or an image, not both. If you send both, CLIP will only process the image.
@@ -88,3 +99,7 @@ OpenAI released CLIP under the MIT License, which means you can use it for comme
 ---
 
 Built by OpenAI • [Paper](https://arxiv.org/abs/2103.00020) • [GitHub](https://github.com/openai/CLIP)
+
+⭐ Star the repo on [GitHub](https://github.com/openai/CLIP)!  
+🐦 Follow [@zsakib_](https://twitter.com/zsakib_) on X  
+💻 Check out more projects [@zsxkib](https://github.com/zsxkib) on GitHub

@@ -1,0 +1,17 @@
+# Configuration for CLIP embeddings model
+# This model generates embeddings for text and images using OpenAI's CLIP
+official_model: openai/clip
+model: replicate/openai-clip-internal
+test_model: replicate/openai-clip-internal-test
+test_hardware: gpu-l40s
+deployment:
+  name: official-model-openai-clip
+  owner: replicate
+predict:
+  compare_outputs: false
+  predict_timeout: 300
+  test_cases:
+    - inputs:
+        text: "A formula one car"
+    - inputs:
+        text: "A beautiful sunset over the ocean"

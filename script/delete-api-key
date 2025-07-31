@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eux
+set -o pipefail
+rm -f .proxy-api-key
+rm -f .openai-api-key

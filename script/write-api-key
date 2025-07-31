@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eux
+set -o pipefail
+echo "$PROXY_API_KEY" > .proxy-api-key
+echo "$OPENAI_API_KEY" > .openai-api-key

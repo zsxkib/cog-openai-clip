@@ -187,3 +187,15 @@ cython_debug/
 *.avi
 *.mkv
 *.flv
+
+# Cog safe push
+.pytest_cache
+.ruff_cache
+.proxy-api-key
+.openai-api-key
+.cog
+.venv
+venv/
+*.jpeg
+*.gif
+cog.yaml
