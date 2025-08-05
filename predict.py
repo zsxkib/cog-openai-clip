@@ -17,7 +17,7 @@ import time
 from typing import List, Optional
 
 import torch
-from cog import BaseModel, BasePredictor, File, Input
+from cog import BaseModel, BasePredictor, Input, Path
 from PIL import Image
 from transformers import AutoProcessor, AutoTokenizer, CLIPModel
 
@@ -86,7 +86,7 @@ class Predictor(BasePredictor):
     def predict(
         self,
         text: Optional[str] = Input(description="Input text to encode", default=None),
-        image: Optional[File] = Input(
+        image: Optional[Path] = Input(
             description="Input image to encode", default=None
         ),
     ) -> Output:
@@ -95,10 +95,10 @@ class Predictor(BasePredictor):
         Provide either text or image input (not both). If both are provided,
         only the image will be processed.
         """
-        
-        # Start timing for billing
+
+        # Start timing for billing (backup for unspecified_billing_metric)
         start_time = time.time()
-        
+
         embedding = []
 
         if image is not None:
@@ -114,7 +114,8 @@ class Predictor(BasePredictor):
             text_features = self.model.get_text_features(**inputs)
             embedding = text_features.tolist()[0]
 
-        # Calculate elapsed time and record time-based billing metric
+        # Calculate elapsed time and record as backup billing metric
+        # TODO: Remove this once run_time billing is confirmed working
         elapsed_time = time.time() - start_time
         record_billing_metric("unspecified_billing_metric", elapsed_time)
 
