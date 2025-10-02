@@ -111,7 +111,12 @@ class Predictor(BasePredictor):
             inputs = self.tokenizer([text], padding=True, return_tensors="pt").to(
                 device
             )
-            text_features = self.model.get_text_features(**inputs)
+            try:
+                text_features = self.model.get_text_features(**inputs)
+            except ValueError as exc:
+                if "must be less than" in str(exc):
+                    raise ValueError(str(exc) + " - uIJ6l3ruRD") from exc
+                raise exc
             embedding = text_features.tolist()[0]
 
         # Calculate elapsed time and record as backup billing metric
